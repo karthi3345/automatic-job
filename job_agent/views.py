@@ -1,155 +1,218 @@
 import os
 import csv
 import json
-import threading
-from datetime import date
+import re
+from urllib.parse import quote, urlparse
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import SentApplication
+from .models import JobLead, SentApplication
+import requests
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JOB_BOT_DIR = os.path.join(BASE_DIR, "job_outreach_bot")
 LEADS_FILE = os.path.join(JOB_BOT_DIR, "leads.csv")
-ENV_FILE = os.path.join(JOB_BOT_DIR, ".env")
 
-# Background task execution state
-TASK_STATE = {
-    "is_running": False,
-    "status": "Idle",
-    "progress": 0,
-    "total": 0,
-    "logs": []
-}
+SENDER_NAME = "Karthik Raja L"
+SENDER_EMAIL = "lkarthikaraja@gmail.com"
+PORTFOLIO = "https://dashing-praline-9e34ab.netlify.app/"
+GITHUB = "https://github.com/karthi3345"
+PHONE = "+91 8610177637"
 
-def log_msg(msg):
-    TASK_STATE["logs"].append(msg)
-    if len(TASK_STATE["logs"]) > 200:
-        TASK_STATE["logs"].pop(0)
+def build_mailto_link(email, company, role):
+    subject = f"Application: {role} - {SENDER_NAME} (Technical PM - 4+ Years Exp)"
+    body = f"""Dear Hiring Team,
+
+I hope this email finds you well.
+
+I am writing to express my strong interest in open {role} opportunities at {company}.
+
+With over 4+ years of experience as a Technical Project Coordinator / Project Manager driving end-to-end delivery of complex platforms (AI/ML, FinTech/Banking, Gaming, IoT, and Enterprise systems), I bridge business requirements and hands-on engineering execution.
+
+Key Highlights:
+• Agile Scrum Delivery: Owned sprint planning, backlog grooming, JIRA burn-down tracking, and production releases.
+• Technical Depth: Python (Django/DRF), REST APIs, SQL (PostgreSQL), and Cloud Deployments (AWS).
+• Proven Project History: Coordinated AI-based Stock Prediction Platform (Django/React/RNN), Banking KYC Applications, and IoT Control Systems.
+• Governance: Expert in RAID logs, UAT governance, and cross-functional team alignment.
+
+I have attached my resume for your consideration. I would welcome the opportunity to discuss how my skill set aligns with your delivery goals at {company}.
+
+Portfolio: {PORTFOLIO}
+GitHub: {GITHUB}
+
+Warm regards,
+
+{SENDER_NAME}
+Technical Project Manager / Project Coordinator
+Phone: {PHONE}
+Email: {SENDER_EMAIL}
+"""
+    return f"mailto:{email}?subject={quote(subject)}&body={quote(body)}"
+
+
+def fetch_live_pm_jobs_from_web():
+    """Fetches real Project Manager openings from RemoteOK, Arbeitnow, and Curated Tech Companies."""
+    leads = []
+    seen = set()
+
+    # 1. Fetch RemoteOK
+    try:
+        r = requests.get("https://remoteok.com/api", headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        if r.status_code == 200:
+            data = r.json()[1:]
+            for item in data:
+                title = item.get("position", "")
+                company = item.get("company", "").strip()
+                desc = item.get("description", "")
+                if any(k in title.lower() for k in ["project", "program", "product", "delivery", "scrum", "agile", "coordinator"]):
+                    emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', desc)
+                    email = emails[0].strip(".").lower() if emails else ""
+                    key = f"{company}-{title}".lower()
+                    if key not in seen:
+                        seen.add(key)
+                        leads.append({
+                            "company_name": company,
+                            "role": title,
+                            "contact_email": email or f"careers@{urlparse(item.get('url', '')).netloc.replace('www.', '')}" if item.get('url') else "",
+                            "apply_url": item.get("apply_url") or item.get("url") or "",
+                            "source": "RemoteOK Live",
+                            "location": item.get("location") or "Remote"
+                        })
+    except Exception as e:
+        print(f"RemoteOK fetch note: {e}")
+
+    # 2. Fetch Arbeitnow
+    try:
+        r = requests.get("https://arbeitnow.com/api/job-board-api", timeout=6)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            for item in data:
+                title = item.get("title", "")
+                company = item.get("company_name", "").strip()
+                if any(k in title.lower() for k in ["project", "program", "delivery", "scrum", "agile"]):
+                    key = f"{company}-{title}".lower()
+                    if key not in seen:
+                        seen.add(key)
+                        leads.append({
+                            "company_name": company,
+                            "role": title,
+                            "contact_email": f"jobs@{urlparse(item.get('url', '')).netloc.replace('www.', '')}" if item.get('url') else "",
+                            "apply_url": item.get("url") or "",
+                            "source": "Arbeitnow Tech",
+                            "location": item.get("location") or "Remote / Europe"
+                        })
+    except Exception as e:
+        print(f"Arbeitnow fetch note: {e}")
+
+    # 3. Read leads.csv curated companies
+    if os.path.exists(LEADS_FILE):
+        try:
+            with open(LEADS_FILE, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    cname = row.get("company_name", "").strip()
+                    role = row.get("role", "Technical Project Manager").strip()
+                    email = row.get("recipient_email", "").strip()
+                    key = f"{cname}-{role}".lower()
+                    if key not in seen:
+                        seen.add(key)
+                        leads.append({
+                            "company_name": cname,
+                            "role": role,
+                            "contact_email": email,
+                            "apply_url": "",
+                            "source": "Curated Tech Company",
+                            "location": "Global / Remote"
+                        })
+        except Exception as e:
+            print(f"leads.csv read note: {e}")
+
+    return leads
+
 
 def dashboard(request):
-    today = date.today()
-    sent_today = SentApplication.objects.filter(sent_date=today).count()
-    total_sent = SentApplication.objects.count()
-    
-    # Read leads count
-    leads_count = 0
-    sample_leads = []
-    if os.path.exists(LEADS_FILE):
-        with open(LEADS_FILE, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for i, r in enumerate(reader):
-                leads_count += 1
-                if i < 8:
-                    sample_leads.append(r)
+    search_q = request.GET.get("q", "").strip().lower()
 
-    # Read .env details / os.environ
-    config = {
-        "SENDER_EMAIL": os.environ.get("SENDER_EMAIL", ""),
-        "SENDER_NAME": os.environ.get("SENDER_NAME", "Karthik Raja L"),
-        "DAILY_LIMIT": os.environ.get("DAILY_LIMIT", "200"),
-    }
-    if os.path.exists(ENV_FILE):
-        with open(ENV_FILE, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    config[k.strip()] = v.strip().strip('"').strip("'")
+    # If database is empty, seed it once
+    if JobLead.objects.count() == 0:
+        fresh_leads = fetch_live_pm_jobs_from_web()
+        to_create = []
+        for l in fresh_leads[:150]:
+            to_create.append(JobLead(
+                company_name=l["company_name"],
+                role=l["role"],
+                contact_email=l["contact_email"],
+                apply_url=l["apply_url"],
+                source=l["source"],
+                location=l["location"]
+            ))
+        JobLead.objects.bulk_create(to_create)
 
-    recent_sent = SentApplication.objects.all()[:15]
+    leads_qs = JobLead.objects.all()
+    if search_q:
+        leads_qs = leads_qs.filter(
+            models.Q(company_name__icontains=search_q) |
+            models.Q(role__icontains=search_q) |
+            models.Q(location__icontains=search_q)
+        )
+
+    # Attach pre-generated 1-click mailto links to each lead
+    display_leads = []
+    for lead in leads_qs[:100]:
+        email = lead.contact_email or f"careers@{lead.company_name.lower().replace(' ', '')}.com"
+        display_leads.append({
+            "id": lead.id,
+            "company_name": lead.company_name,
+            "role": lead.role,
+            "contact_email": email,
+            "apply_url": lead.apply_url,
+            "source": lead.source,
+            "location": lead.location,
+            "status": lead.status,
+            "mailto_url": build_mailto_link(email, lead.company_name, lead.role)
+        })
+
+    total_leads = JobLead.objects.count()
+    applied_count = JobLead.objects.filter(status="EMAILED").count()
 
     context = {
-        "sent_today": sent_today,
-        "daily_limit": config.get("DAILY_LIMIT", "200"),
-        "total_sent": total_sent,
-        "leads_count": leads_count,
-        "sample_leads": sample_leads,
-        "recent_sent": recent_sent,
-        "config": config,
-        "task_state": TASK_STATE
+        "leads": display_leads,
+        "total_leads": total_leads,
+        "applied_count": applied_count,
+        "search_q": search_q,
+        "sender_name": SENDER_NAME,
+        "portfolio": PORTFOLIO,
+        "github": GITHUB
     }
     return render(request, "job_agent/dashboard.html", context)
 
 
 @csrf_exempt
-def trigger_fetch_companies(request):
-    if request.method == "POST":
-        if TASK_STATE["is_running"]:
-            return JsonResponse({"status": "error", "message": "A task is already running."})
-
-        count = int(request.POST.get("count", 200))
-        role = request.POST.get("role", "Technical Project Manager")
-
-        def worker():
-            TASK_STATE["is_running"] = True
-            TASK_STATE["status"] = f"Fetching {count} companies for role: {role}..."
-            TASK_STATE["logs"] = []
-            log_msg(f"🚀 Started lead fetching process (Target: {count})...")
-            try:
-                import sys
-                sys.path.insert(0, JOB_BOT_DIR)
-                from fetch_companies import generate_leads
-                fetched = generate_leads(target_count=count, default_role=role)
-                log_msg(f"✅ Successfully fetched & saved {fetched} companies to leads.csv!")
-                TASK_STATE["status"] = f"Complete: {fetched} leads ready."
-            except Exception as e:
-                log_msg(f"❌ Error during fetch: {str(e)}")
-                TASK_STATE["status"] = "Error"
-            finally:
-                TASK_STATE["is_running"] = False
-
-        t = threading.Thread(target=worker, daemon=True)
-        t.start()
-        return JsonResponse({"status": "success", "message": "Company fetching started in background."})
-    return JsonResponse({"status": "error", "message": "POST required."})
+def refresh_leads_api(request):
+    """Force re-fetch new Project Manager jobs."""
+    JobLead.objects.all().delete()
+    fresh_leads = fetch_live_pm_jobs_from_web()
+    to_create = []
+    for l in fresh_leads:
+        to_create.append(JobLead(
+            company_name=l["company_name"],
+            role=l["role"],
+            contact_email=l["contact_email"],
+            apply_url=l["apply_url"],
+            source=l["source"],
+            location=l["location"]
+        ))
+    JobLead.objects.bulk_create(to_create)
+    return JsonResponse({"status": "success", "count": len(to_create)})
 
 
 @csrf_exempt
-def trigger_send_emails(request):
-    if request.method == "POST":
-        if TASK_STATE["is_running"]:
-            return JsonResponse({"status": "error", "message": "A task is already running."})
-
-        dry_run = request.POST.get("dry_run") == "true"
-
-        def worker():
-            TASK_STATE["is_running"] = True
-            TASK_STATE["status"] = f"Sending emails ({'DRY RUN' if dry_run else 'LIVE'})..."
-            TASK_STATE["logs"] = []
-            log_msg(f"🚀 Started outreach batch ({'DRY RUN MODE' if dry_run else 'LIVE SENDING'})...")
-            try:
-                import sys
-                sys.path.insert(0, JOB_BOT_DIR)
-                import email_bot
-                
-                # Intercept record_sent to also save into Django SentApplication
-                original_record = email_bot.record_sent
-                def synced_record(email, company, role, status="SENT"):
-                    original_record(email, company, role, status=status)
-                    try:
-                        SentApplication.objects.update_or_create(
-                            recipient_email=email.strip().lower(),
-                            defaults={"company_name": company, "role": role, "status": status}
-                        )
-                    except Exception as err:
-                        log_msg(f"DB Sync warning: {err}")
-
-                email_bot.record_sent = synced_record
-                email_bot.send_batch(dry_run=dry_run)
-                log_msg(f"✨ Batch finished successfully!")
-                TASK_STATE["status"] = "Complete: Outreach finished."
-            except Exception as e:
-                log_msg(f"❌ Outreach error: {str(e)}")
-                TASK_STATE["status"] = "Error"
-            finally:
-                TASK_STATE["is_running"] = False
-
-        t = threading.Thread(target=worker, daemon=True)
-        t.start()
-        return JsonResponse({"status": "success", "message": "Outreach process started in background."})
-    return JsonResponse({"status": "error", "message": "POST required."})
-
-
-def api_task_status(request):
-    return JsonResponse(TASK_STATE)
+def mark_applied_api(request, lead_id):
+    """Marks a lead as applied/emailed."""
+    try:
+        lead = JobLead.objects.get(id=lead_id)
+        lead.status = "EMAILED"
+        lead.save()
+        return JsonResponse({"status": "success"})
+    except JobLead.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "Lead not found"})

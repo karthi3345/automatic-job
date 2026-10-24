@@ -3,260 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Job Application Agent Dashboard</title>
+    <title>Technical Project Manager Jobs & 1-Click Mailer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b1120; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; }
-        .text-muted { color: #94a3b8 !important; }
-        .stat-card { border-left: 4px solid #3b82f6; transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); }
-        .stat-card.green { border-left-color: #10b981; }
-        .stat-card.purple { border-left-color: #8b5cf6; }
-        .stat-card.amber { border-left-color: #f59e0b; }
-        .table-dark { background-color: #1e293b; color: #f8fafc; }
-        .table-dark th { background-color: #0f172a; border-color: #334155; color: #94a3b8; }
-        .table-dark td { border-color: #334155; }
-        .log-box { background-color: #020617; border: 1px solid #334155; border-radius: 8px; font-family: monospace; height: 260px; overflow-y: auto; padding: 12px; color: #38bdf8; font-size: 0.85rem; }
-        .badge-live { background-color: #10b981; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .table-dark { background-color: #1e293b; }
+        .table-dark th { background-color: #0f172a; border-color: #334155; color: #94a3b8; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .table-dark td { border-color: #334155; vertical-align: middle; }
+        .badge-source { font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; }
+        .btn-apply { background-color: #0284c7; color: white; border: none; font-weight: 500; font-size: 0.85rem; padding: 6px 14px; border-radius: 6px; transition: all 0.2s; }
+        .btn-apply:hover { background-color: #0369a1; color: white; transform: translateY(-1px); }
+        .btn-applied { background-color: #059669 !important; }
+        .search-input { background-color: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; padding: 10px 16px; }
+        .search-input:focus { background-color: #0f172a; border-color: #38bdf8; color: white; box-shadow: none; }
     </style>
 </head>
 <body class="p-3 p-md-4">
 <div class="container-fluid max-w-7xl">
-    
+
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
         <div>
-            <h2 class="h3 fw-bold mb-1 text-white"><i class="fa-solid fa-robot text-primary me-2"></i>AI Job Outreach Automation Agent</h2>
-            <p class="text-muted mb-0">Applicant: <strong class="text-info">{{ config.SENDER_NAME }}</strong> | {{ config.SENDER_EMAIL }} | Role: <strong>Technical Project Manager</strong></p>
+            <h2 class="h3 fw-bold mb-1 text-white"><i class="fa-solid fa-briefcase text-info me-2"></i>Technical Project Manager - Live Job Leads</h2>
+            <p class="text-muted mb-0">Candidate: <strong class="text-info">{{ sender_name }}</strong> | 4+ Years Exp | Portfolio: <a href="{{ portfolio }}" target="_blank" class="text-info text-decoration-none">{{ portfolio }}</a></p>
         </div>
-        <div class="mt-2 mt-md-0">
-            <span class="badge bg-secondary p-2 me-2"><i class="fa-brands fa-google me-1"></i> Free Gmail SMTP</span>
-            <span id="agent-status-badge" class="badge bg-dark border border-secondary p-2">Status: Idle</span>
+        <div class="mt-2 mt-md-0 d-flex gap-2">
+            <button class="btn btn-outline-info btn-sm" onclick="refreshLeads()"><i class="fa-solid fa-rotate me-1"></i> Refresh Live Jobs</button>
         </div>
     </div>
 
-    <!-- Stats Row -->
+    <!-- Quick Stats -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card stat-card p-3">
-                <div class="text-muted small text-uppercase fw-bold">Emails Sent Today</div>
-                <div class="d-flex align-items-baseline justify-content-between mt-2">
-                    <h3 class="fw-bold mb-0 text-white" id="stat-sent-today">{{ sent_today }}</h3>
-                    <span class="text-muted">/ {{ daily_limit }} daily limit</span>
-                </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small text-uppercase fw-bold">Verified Jobs Available</div>
+                <h3 class="fw-bold mb-0 text-white mt-1">{{ total_leads }}</h3>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card green p-3">
-                <div class="text-muted small text-uppercase fw-bold">All-Time Sent</div>
-                <div class="d-flex align-items-baseline justify-content-between mt-2">
-                    <h3 class="fw-bold mb-0 text-success" id="stat-all-time">{{ total_sent }}</h3>
-                    <span class="text-muted"><i class="fa-solid fa-check-double text-success"></i> Recorded</span>
-                </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small text-uppercase fw-bold">Target Role</div>
+                <h3 class="fw-bold mb-0 text-info mt-1">Project Manager / Agile Delivery</h3>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card purple p-3">
-                <div class="text-muted small text-uppercase fw-bold">Companies In Queue</div>
-                <div class="d-flex align-items-baseline justify-content-between mt-2">
-                    <h3 class="fw-bold mb-0 text-purple" style="color: #c084fc;" id="stat-leads">{{ leads_count }}</h3>
-                    <span class="text-muted"><i class="fa-solid fa-building text-info"></i> leads.csv</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card amber p-3">
-                <div class="text-muted small text-uppercase fw-bold">Anti-Spam Safety</div>
-                <div class="d-flex align-items-baseline justify-content-between mt-2">
-                    <h3 class="fw-bold mb-0 text-warning">25 - 60s</h3>
-                    <span class="text-muted">Random delay</span>
-                </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="text-muted small text-uppercase fw-bold">Manual Emails Sent</div>
+                <h3 class="fw-bold mb-0 text-success mt-1" id="applied-count">{{ applied_count }}</h3>
             </div>
         </div>
     </div>
 
-    <!-- Controls Row -->
-    <div class="row g-4 mb-4">
-        <!-- Control Actions -->
-        <div class="col-lg-6">
-            <div class="card p-4 h-100">
-                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-play text-success me-2"></i>Trigger Automations</h5>
-                
-                <div class="mb-4 p-3 rounded" style="background-color: #0b1329; border: 1px solid #1e293b;">
-                    <h6 class="fw-semibold text-info mb-2"><i class="fa-solid fa-magnifying-glass me-1"></i> Auto-Fetch Tech Companies</h6>
-                    <p class="text-muted small mb-3">Scrapes 1,100+ verified hiring directories and generates direct contact addresses.</p>
-                    <div class="row g-2 align-items-center">
-                        <div class="col-auto">
-                            <input type="number" id="fetch-count" class="form-control form-control-sm bg-dark text-white border-secondary" value="200" style="width: 90px;">
-                        </div>
-                        <div class="col">
-                            <input type="text" id="fetch-role" class="form-control form-control-sm bg-dark text-white border-secondary" value="Technical Project Manager">
-                        </div>
-                        <div class="col-auto">
-                            <button class="btn btn-primary btn-sm px-3" onclick="triggerFetch()"><i class="fa-solid fa-download me-1"></i> Fetch Leads</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-3 rounded" style="background-color: #0b1329; border: 1px solid #1e293b;">
-                    <h6 class="fw-semibold text-success mb-2"><i class="fa-solid fa-paper-plane me-1"></i> Send Job Outreach Batch</h6>
-                    <p class="text-muted small mb-3">Attaches resume, personalizes cover letters for Karthik Raja L, and sends via Gmail.</p>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-info btn-sm" onclick="triggerSend(true)"><i class="fa-solid fa-flask me-1"></i> Dry Run (Test Preview)</button>
-                        <button class="btn btn-success btn-sm px-3" onclick="triggerSend(false)"><i class="fa-solid fa-paper-plane me-1"></i> Send Real Emails (Live)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Terminal Logs -->
-        <div class="col-lg-6">
-            <div class="card p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-terminal text-info me-2"></i>Live Agent Terminal</h5>
-                    <span id="live-indicator" class="badge bg-secondary">Idle</span>
-                </div>
-                <div class="log-box mt-2" id="log-container">
-                    <div>Waiting for command...</div>
-                </div>
-            </div>
+    <!-- Instructions Banner -->
+    <div class="alert alert-info bg-dark border-info text-white mb-4 p-3 d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fa-solid fa-envelope-open-text text-info me-2 fs-5"></i>
+            <strong>1-Click Emailing:</strong> Clicking <strong>"Send Mail"</strong> opens your email app (Gmail / Outlook) with your cover letter, background summary, and portfolio pre-filled! Just attach your resume PDF and hit send.
         </div>
     </div>
 
-    <!-- Leads Preview & History -->
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card p-3">
-                <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-list-check text-warning me-2"></i>Current Queue Preview (leads.csv)</h6>
-                <div class="table-responsive">
-                    <table class="table table-dark table-sm table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>Company</th>
-                                <th>Target Email</th>
-                                <th>Role</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for lead in sample_leads %}
-                            <tr>
-                                <td class="fw-semibold text-white">{{ lead.company_name }}</td>
-                                <td class="text-info font-monospace small">{{ lead.recipient_email }}</td>
-                                <td class="text-muted small">{{ lead.role }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-3">No leads in queue. Click "Fetch Leads" above.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <!-- Search Form -->
+    <div class="mb-4">
+        <form method="GET" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ search_q }}" class="form-control search-input" placeholder="Search by company name, role, or location (e.g. Remote, Europe, FinTech)...">
+            <button type="submit" class="btn btn-primary px-4"><i class="fa-solid fa-search me-1"></i> Search</button>
+            {% if search_q %}
+            <a href="/" class="btn btn-outline-secondary px-3">Clear</a>
+            {% endif %}
+        </form>
+    </div>
 
-        <div class="col-lg-6">
-            <div class="card p-3">
-                <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i>Recently Sent Applications</h6>
-                <div class="table-responsive">
-                    <table class="table table-dark table-sm table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>Company</th>
-                                <th>Recipient</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sent in recent_sent %}
-                            <tr>
-                                <td class="fw-semibold text-white">{{ sent.company_name }}</td>
-                                <td class="text-muted small">{{ sent.recipient_email }}</td>
-                                <td class="text-muted small">{{ sent.sent_timestamp|date:"M d, H:i" }}</td>
-                                <td><span class="badge bg-success small">{{ sent.status }}</span></td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-3">No sent emails recorded yet.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Jobs Table -->
+    <div class="card p-3">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Company</th>
+                        <th style="width: 30%;">Job Role</th>
+                        <th style="width: 15%;">Location</th>
+                        <th style="width: 12%;">Source</th>
+                        <th style="width: 18%;" class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr id="lead-row-{{ lead.id }}">
+                        <td>
+                            <div class="fw-bold text-white fs-6">{{ lead.company_name }}</div>
+                            <div class="text-muted small font-monospace"><i class="fa-regular fa-envelope me-1"></i>{{ lead.contact_email }}</div>
+                        </td>
+                        <td>
+                            <div class="text-info fw-semibold">{{ lead.role }}</div>
+                            {% if lead.apply_url %}
+                            <a href="{{ lead.apply_url }}" target="_blank" class="small text-muted text-decoration-none"><i class="fa-solid fa-external-link me-1"></i>View Job Post</a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary"><i class="fa-solid fa-location-dot me-1"></i>{{ lead.location }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-dark border border-secondary badge-source">{{ lead.source }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-apply {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
+                                <i class="fa-solid fa-paper-plane me-1"></i> {% if lead.status == 'EMAILED' %}Emailed{% else %}Send Mail{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No job leads found matching your search.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
 </div>
 
 <script>
-    function triggerFetch() {
-        const count = document.getElementById('fetch-count').value;
-        const role = document.getElementById('fetch-role').value;
-        const formData = new FormData();
-        formData.append('count', count);
-        formData.append('role', role);
-
-        fetch('/job-agent/api/fetch/', { method: 'POST', body: formData })
+    function markApplied(leadId) {
+        fetch('/api/mark-applied/' + leadId + '/', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                alert(data.message);
-                pollStatus();
+                if (data.status === 'success') {
+                    const row = document.getElementById('lead-row-' + leadId);
+                    if (row) {
+                        const btn = row.querySelector('.btn-apply');
+                        btn.classList.add('btn-applied');
+                        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Emailed';
+                    }
+                }
             });
     }
 
-    function triggerSend(dryRun) {
-        if (!dryRun && !confirm("Are you sure you want to send REAL live emails to companies?")) {
-            return;
-        }
-        const formData = new FormData();
-        formData.append('dry_run', dryRun ? 'true' : 'false');
-
-        fetch('/job-agent/api/send/', { method: 'POST', body: formData })
+    function refreshLeads() {
+        if (!confirm("Fetch fresh Project Manager jobs from live web APIs?")) return;
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Fetching...';
+        
+        fetch('/api/refresh/', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                alert(data.message);
-                pollStatus();
+                window.location.reload();
+            })
+            .catch(() => {
+                alert("Failed to refresh leads.");
+                btn.disabled = false;
             });
     }
-
-    function pollStatus() {
-        fetch('/job-agent/api/status/')
-            .then(res => res.json())
-            .then(state => {
-                const badge = document.getElementById('agent-status-badge');
-                const liveBadge = document.getElementById('live-indicator');
-                const logBox = document.getElementById('log-container');
-
-                if (state.is_running) {
-                    badge.className = 'badge badge-live p-2';
-                    badge.innerText = 'Agent Active: ' + state.status;
-                    liveBadge.className = 'badge bg-danger';
-                    liveBadge.innerText = 'RUNNING';
-                } else {
-                    badge.className = 'badge bg-dark border border-secondary p-2';
-                    badge.innerText = 'Status: ' + state.status;
-                    liveBadge.className = 'badge bg-secondary';
-                    liveBadge.innerText = 'IDLE';
-                }
-
-                if (state.logs && state.logs.length > 0) {
-                    logBox.innerHTML = state.logs.map(l => '<div>' + l + '</div>').join('');
-                    logBox.scrollTop = logBox.scrollHeight;
-                }
-
-                if (state.is_running) {
-                    setTimeout(pollStatus, 2000);
-                }
-            });
-    }
-
-    // Start background poll on load
-    setInterval(pollStatus, 4000);
 </script>
 </body>
 </html>
