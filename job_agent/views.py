@@ -21,8 +21,8 @@ PHONE = "+91 8610177637"
 
 RESUME_ONLINE_URL = "https://automatic-job.vercel.app/resume/"
 
-def build_gmail_web_link(email, company, role):
-    """Generates a direct Gmail compose web link: https://mail.google.com/mail/?view=cm..."""
+def build_email_links(email, company, role):
+    """Generates both direct Gmail Web and Outlook Web compose links."""
     subject = f"Application: {role} - {SENDER_NAME} (Technical PM - 4+ Years Exp)"
     body = f"""Dear Hiring Team,
 
@@ -51,15 +51,26 @@ Technical Project Manager / Project Coordinator
 Phone: {PHONE}
 Email: {SENDER_EMAIL}
 """
-    params = {
+    from urllib.parse import urlencode
+
+    gmail_params = {
         "view": "cm",
         "fs": "1",
         "to": email,
         "su": subject,
         "body": body
     }
-    from urllib.parse import urlencode
-    return f"https://mail.google.com/mail/?{urlencode(params)}"
+    outlook_params = {
+        "path": "/mail/action/compose",
+        "to": email,
+        "subject": subject,
+        "body": body
+    }
+
+    return {
+        "gmail": f"https://mail.google.com/mail/?{urlencode(gmail_params)}",
+        "outlook": f"https://outlook.live.com/mail/0/deeplink/compose?{urlencode(outlook_params)}"
+    }
 
 
 def fetch_live_pm_jobs_from_web():
@@ -188,6 +199,7 @@ def dashboard(request):
     for lead in leads_qs[:1000]:
         has_direct_email = bool(lead.contact_email and '@' in lead.contact_email)
         apply_url = lead.apply_url or f"https://www.google.com/search?q={quote(lead.company_name + ' careers')}"
+        email_links = build_email_links(lead.contact_email, lead.company_name, lead.role) if has_direct_email else {"gmail": "", "outlook": ""}
         display_leads.append({
             "id": lead.id,
             "company_name": lead.company_name,
@@ -198,7 +210,8 @@ def dashboard(request):
             "location": lead.location,
             "status": lead.status,
             "has_email": has_direct_email,
-            "mailto_url": build_gmail_web_link(lead.contact_email, lead.company_name, lead.role) if has_direct_email else ""
+            "gmail_url": email_links["gmail"],
+            "outlook_url": email_links["outlook"]
         })
 
     total_leads = JobLead.objects.count()

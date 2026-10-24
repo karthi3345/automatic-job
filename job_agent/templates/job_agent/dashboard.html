@@ -110,16 +110,23 @@
                             <span class="badge bg-dark border border-secondary badge-source">{{ lead.source }}</span>
                         </td>
                         <td class="text-end">
-                            <div class="d-inline-flex gap-1 justify-content-end">
-                                {% if lead.has_email %}
-                                <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-danger btn-sm fw-semibold {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
-                                    <i class="fa-brands fa-google me-1"></i> Send via Gmail
-                                </a>
-                                {% endif %}
-                                {% if lead.apply_url %}
-                                <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
-                                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Portal
-                                </a>
+                            <div class="d-inline-flex gap-1 justify-content-end align-items-center" id="action-cell-{{ lead.id }}">
+                                {% if lead.status == 'EMAILED' %}
+                                <span class="badge bg-success p-2"><i class="fa-solid fa-check-double me-1"></i> Emailed</span>
+                                {% else %}
+                                    {% if lead.has_email %}
+                                    <a href="{{ lead.gmail_url }}" target="_blank" class="btn btn-danger btn-sm fw-semibold" onclick="markApplied('{{ lead.id }}')">
+                                        <i class="fa-brands fa-google me-1"></i> Gmail
+                                    </a>
+                                    <a href="{{ lead.outlook_url }}" target="_blank" class="btn btn-primary btn-sm fw-semibold" onclick="markApplied('{{ lead.id }}')">
+                                        <i class="fa-brands fa-microsoft me-1"></i> Outlook
+                                    </a>
+                                    {% endif %}
+                                    {% if lead.apply_url %}
+                                    <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
+                                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Portal
+                                    </a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </td>
@@ -138,18 +145,21 @@
 
 <script>
     function markApplied(leadId) {
-        fetch('/api/mark-applied/' + leadId + '/', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const row = document.getElementById('lead-row-' + leadId);
-                    if (row) {
-                        const btn = row.querySelector('.btn-apply');
-                        btn.classList.add('btn-applied');
-                        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Emailed';
-                    }
-                }
-            });
+        // Immediate visual feedback on click
+        const cell = document.getElementById('action-cell-' + leadId);
+        if (cell) {
+            cell.innerHTML = '<span class="badge bg-success p-2"><i class="fa-solid fa-check-double me-1"></i> Emailed</span>';
+        }
+
+        // Update counter
+        const countBadge = document.getElementById('applied-count');
+        if (countBadge) {
+            const current = parseInt(countBadge.innerText) || 0;
+            countBadge.innerText = current + 1;
+        }
+
+        // Persist to backend database
+        fetch('/api/mark-applied/' + leadId + '/', { method: 'POST' });
     }
 
     function refreshLeads() {
