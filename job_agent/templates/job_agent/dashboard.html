@@ -94,13 +94,14 @@
                     <tr id="lead-row-{{ lead.id }}">
                         <td>
                             <div class="fw-bold text-white fs-6">{{ lead.company_name }}</div>
-                            <div class="text-muted small font-monospace"><i class="fa-regular fa-envelope me-1"></i>{{ lead.contact_email }}</div>
+                            {% if lead.contact_email %}
+                            <div class="text-success small font-monospace"><i class="fa-regular fa-envelope me-1"></i>{{ lead.contact_email }}</div>
+                            {% else %}
+                            <div class="text-muted small"><i class="fa-solid fa-building me-1"></i>Direct Portal</div>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="text-info fw-semibold">{{ lead.role }}</div>
-                            {% if lead.apply_url %}
-                            <a href="{{ lead.apply_url }}" target="_blank" class="small text-muted text-decoration-none"><i class="fa-solid fa-external-link me-1"></i>View Job Post</a>
-                            {% endif %}
                         </td>
                         <td>
                             <span class="badge bg-secondary"><i class="fa-solid fa-location-dot me-1"></i>{{ lead.location }}</span>
@@ -109,9 +110,15 @@
                             <span class="badge bg-dark border border-secondary badge-source">{{ lead.source }}</span>
                         </td>
                         <td class="text-end">
-                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-apply {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
+                            {% if lead.has_email %}
+                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-apply btn-sm {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
                                 <i class="fa-solid fa-paper-plane me-1"></i> {% if lead.status == 'EMAILED' %}Emailed{% else %}Send Mail{% endif %}
                             </a>
+                            {% elif lead.apply_url %}
+                            <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
+                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Apply on Portal
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

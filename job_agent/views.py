@@ -174,20 +174,21 @@ def dashboard(request):
             models.Q(location__icontains=search_q)
         )
 
-    # Attach pre-generated 1-click mailto links to each lead
+    # Attach pre-generated 1-click mailto links or direct application links
     display_leads = []
     for lead in leads_qs[:1000]:
-        email = lead.contact_email or f"careers@{lead.company_name.lower().replace(' ', '')}.com"
+        has_direct_email = bool(lead.contact_email and '@' in lead.contact_email and not lead.contact_email.startswith('careers@'))
         display_leads.append({
             "id": lead.id,
             "company_name": lead.company_name,
             "role": lead.role,
-            "contact_email": email,
+            "contact_email": lead.contact_email if has_direct_email else "",
             "apply_url": lead.apply_url,
             "source": lead.source,
             "location": lead.location,
             "status": lead.status,
-            "mailto_url": build_mailto_link(email, lead.company_name, lead.role)
+            "has_email": has_direct_email,
+            "mailto_url": build_mailto_link(lead.contact_email, lead.company_name, lead.role) if has_direct_email else ""
         })
 
     total_leads = JobLead.objects.count()
