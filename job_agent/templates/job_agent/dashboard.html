@@ -110,15 +110,18 @@
                             <span class="badge bg-dark border border-secondary badge-source">{{ lead.source }}</span>
                         </td>
                         <td class="text-end">
-                            {% if lead.has_email %}
-                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-danger btn-sm fw-semibold {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
-                                <i class="fa-brands fa-google me-1"></i> Send via Gmail
-                            </a>
-                            {% elif lead.apply_url %}
-                            <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
-                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Apply on Portal
-                            </a>
-                            {% endif %}
+                            <div class="d-inline-flex gap-1 justify-content-end">
+                                {% if lead.has_email %}
+                                <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-danger btn-sm fw-semibold {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
+                                    <i class="fa-brands fa-google me-1"></i> Send via Gmail
+                                </a>
+                                {% endif %}
+                                {% if lead.apply_url %}
+                                <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
+                                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Portal
+                                </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}

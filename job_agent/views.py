@@ -183,16 +183,17 @@ def dashboard(request):
             models.Q(location__icontains=search_q)
         )
 
-    # Attach pre-generated 1-click mailto links or direct application links
+    # Always ensure every row has a direct action
     display_leads = []
     for lead in leads_qs[:1000]:
-        has_direct_email = bool(lead.contact_email and '@' in lead.contact_email and not lead.contact_email.startswith('careers@'))
+        has_direct_email = bool(lead.contact_email and '@' in lead.contact_email)
+        apply_url = lead.apply_url or f"https://www.google.com/search?q={quote(lead.company_name + ' careers')}"
         display_leads.append({
             "id": lead.id,
             "company_name": lead.company_name,
             "role": lead.role,
-            "contact_email": lead.contact_email if has_direct_email else "",
-            "apply_url": lead.apply_url,
+            "contact_email": lead.contact_email,
+            "apply_url": apply_url,
             "source": lead.source,
             "location": lead.location,
             "status": lead.status,
