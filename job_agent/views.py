@@ -19,6 +19,8 @@ PORTFOLIO = "https://dashing-praline-9e34ab.netlify.app/"
 GITHUB = "https://github.com/karthi3345"
 PHONE = "+91 8610177637"
 
+RESUME_ONLINE_URL = "https://automatic-job.vercel.app/resume/"
+
 def build_mailto_link(email, company, role):
     subject = f"Application: {role} - {SENDER_NAME} (Technical PM - 4+ Years Exp)"
     body = f"""Dear Hiring Team,
@@ -35,10 +37,11 @@ Key Highlights:
 • Proven Project History: Coordinated AI-based Stock Prediction Platform (Django/React/RNN), Banking KYC Applications, and IoT Control Systems.
 • Governance: Expert in RAID logs, UAT governance, and cross-functional team alignment.
 
-I have attached my resume for your consideration. I would welcome the opportunity to discuss how my skill set aligns with your delivery goals at {company}.
+📄 Resume / CV Direct PDF Link: {RESUME_ONLINE_URL}
+🌐 Portfolio: {PORTFOLIO}
+🔗 GitHub: {GITHUB}
 
-Portfolio: {PORTFOLIO}
-GitHub: {GITHUB}
+I would welcome the opportunity to connect and discuss how my skills align with your needs at {company}.
 
 Warm regards,
 
@@ -216,3 +219,12 @@ def mark_applied_api(request, lead_id):
         return JsonResponse({"status": "success"})
     except JobLead.DoesNotExist:
         return JsonResponse({"status": "error", "message": "Lead not found"})
+
+def serve_resume_pdf(request):
+    """Directly serves Karthik Raja's PDF resume."""
+    pdf_path = os.path.join(BASE_DIR, "job_agent", "static", "job_agent", "Karthik_Raja_Resume.pdf")
+    if os.path.exists(pdf_path):
+        from django.http import FileResponse
+        return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf')
+    return redirect(PORTFOLIO)
+
