@@ -15,10 +15,5 @@
       "src": "/(.*)",
       "dest": "myvepower/wsgi.py"
     }
-  ],
-  "functions": {
-    "myvepower/wsgi.py": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
