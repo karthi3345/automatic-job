@@ -43,8 +43,12 @@ def dashboard(request):
                 if i < 8:
                     sample_leads.append(r)
 
-    # Read .env details
-    config = {}
+    # Read .env details / os.environ
+    config = {
+        "SENDER_EMAIL": os.environ.get("SENDER_EMAIL", ""),
+        "SENDER_NAME": os.environ.get("SENDER_NAME", "Karthik Raja L"),
+        "DAILY_LIMIT": os.environ.get("DAILY_LIMIT", "200"),
+    }
     if os.path.exists(ENV_FILE):
         with open(ENV_FILE, "r", encoding="utf-8") as f:
             for line in f:
