@@ -1,0 +1,50 @@
+name: Daily Job Outreach Automation
+
+on:
+  schedule:
+    # Runs Monday through Friday at 04:00 UTC (09:30 AM IST)
+    - cron: '0 4 * * 1-5'
+  workflow_dispatch: # Allows manual trigger from GitHub web UI button anytime
+
+jobs:
+  run-outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180 # Generous timeout to allow 200 emails with human delays
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache Sent History Database
+        uses: actions/cache@v4
+        with:
+          path: job_outreach_bot/sent_history.db
+          key: sent-history-db-${{ github.run_id }}
+          restore-keys: |
+            sent-history-db-
+
+      - name: Execute Autonomous Outreach Pipeline
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_APP_PASSWORD: ${{ secrets.SENDER_APP_PASSWORD }}
+          SENDER_NAME: "Karthik Raja L"
+          SENDER_PHONE: "+91 8610177637"
+          SENDER_LINKEDIN: "https://www.linkedin.com/in/karthik-raja-l/"
+          SENDER_PORTFOLIO: "https://dashing-praline-9e34ab.netlify.app/"
+          SENDER_GITHUB: "https://github.com/karthi3345"
+          DAILY_LIMIT: "200"
+          MIN_DELAY_SECONDS: "20"
+          MAX_DELAY_SECONDS: "40"
+        run: |
+          python job_outreach_bot/run_automation.py --count 200 --role "Technical Project Manager"
