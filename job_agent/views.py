@@ -54,9 +54,24 @@ Email: {SENDER_EMAIL}
 
 
 def fetch_live_pm_jobs_from_web():
-    """Fetches real Project Manager openings from RemoteOK, Arbeitnow, and Curated Tech Companies."""
+    """Fetches real Project Manager openings from curated 1000 startup companies, RemoteOK, and Arbeitnow."""
     leads = []
     seen = set()
+
+    # 1. Load 1000 Global Tech Startups (seed file)
+    seed_file = os.path.join(os.path.dirname(__file__), "seed_startups.json")
+    if os.path.exists(seed_file):
+        try:
+            with open(seed_file, "r", encoding="utf-8") as f:
+                startups = json.load(f)
+                for item in startups:
+                    cname = item.get("company_name", "").strip()
+                    key = f"{cname}-pm".lower()
+                    if key not in seen:
+                        seen.add(key)
+                        leads.append(item)
+        except Exception as e:
+            print(f"Error loading seed startups: {e}")
 
     # 1. Fetch RemoteOK
     try:
@@ -136,11 +151,11 @@ def fetch_live_pm_jobs_from_web():
 def dashboard(request):
     search_q = request.GET.get("q", "").strip().lower()
 
-    # If database is empty, seed it once
+    # If database is empty, seed it with 1000 startups
     if JobLead.objects.count() == 0:
         fresh_leads = fetch_live_pm_jobs_from_web()
         to_create = []
-        for l in fresh_leads[:150]:
+        for l in fresh_leads[:1000]:
             to_create.append(JobLead(
                 company_name=l["company_name"],
                 role=l["role"],
@@ -161,7 +176,7 @@ def dashboard(request):
 
     # Attach pre-generated 1-click mailto links to each lead
     display_leads = []
-    for lead in leads_qs[:100]:
+    for lead in leads_qs[:1000]:
         email = lead.contact_email or f"careers@{lead.company_name.lower().replace(' ', '')}.com"
         display_leads.append({
             "id": lead.id,
