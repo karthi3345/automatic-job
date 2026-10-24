@@ -1,0 +1,29 @@
+Dear {recipient_name},
+
+I hope this email finds you well.
+
+I am writing to express my strong interest in open {role} opportunities at {company_name}. 
+
+With over 4+ years of experience as a Technical Project Coordinator / Project Manager driving end-to-end delivery of complex platforms (AI/ML, FinTech/Banking, Gaming, IoT, and Enterprise systems), I bridge business requirements and hands-on engineering execution.
+
+Key highlights of what I bring to {company_name}:
+• End-to-End Agile Delivery: Owned sprint planning, backlog grooming, milestone tracking (JIRA/Confluence), and production releases across multi-disciplinary teams (Frontend, Backend, AI/ML, QA).
+• Technical Depth: Strong working knowledge of Python (Django / DRF), REST APIs, SQL (PostgreSQL), Cloud deployments (AWS), CI/CD, and system architecture reviews.
+• Proven Track Record: Successfully coordinated an AI-based Stock Prediction Platform (Django/React/RNN), Banking & Payment Applications, and an IoT-based Monitoring System from requirements to production deployment.
+• Stakeholder & Risk Governance: Expert in RAID logs, UAT sign-offs, executive reporting, and cross-functional team alignment.
+
+I have attached my resume for your review. I would welcome the opportunity to discuss how my technical project leadership can support your delivery goals at {company_name}.
+
+Portfolio: {sender_portfolio}
+GitHub: {sender_github}
+
+Thank you for your time and consideration.
+
+Warm regards,
+
+{sender_name}
+Technical Project Manager / Project Coordinator
+Phone: {sender_phone}
+Email: {sender_email}
+Portfolio: {sender_portfolio}
+GitHub: {sender_github}

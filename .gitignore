@@ -1,0 +1,20 @@
+# Environments & secrets
+.env
+*.env
+job_outreach_bot/.env
+
+# Python & Virtualenv
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+job_outreach_bot/sent_history.db
+
+# Resumes & local docs
+job_outreach_bot/resume.pdf
+job_outreach_bot/*.pdf
+
+# System & OS
+.DS_Store
+Thumbs.db
