@@ -21,7 +21,8 @@ PHONE = "+91 8610177637"
 
 RESUME_ONLINE_URL = "https://automatic-job.vercel.app/resume/"
 
-def build_mailto_link(email, company, role):
+def build_gmail_web_link(email, company, role):
+    """Generates a direct Gmail compose web link: https://mail.google.com/mail/?view=cm..."""
     subject = f"Application: {role} - {SENDER_NAME} (Technical PM - 4+ Years Exp)"
     body = f"""Dear Hiring Team,
 
@@ -50,7 +51,15 @@ Technical Project Manager / Project Coordinator
 Phone: {PHONE}
 Email: {SENDER_EMAIL}
 """
-    return f"mailto:{email}?subject={quote(subject)}&body={quote(body)}"
+    params = {
+        "view": "cm",
+        "fs": "1",
+        "to": email,
+        "su": subject,
+        "body": body
+    }
+    from urllib.parse import urlencode
+    return f"https://mail.google.com/mail/?{urlencode(params)}"
 
 
 def fetch_live_pm_jobs_from_web():
@@ -188,7 +197,7 @@ def dashboard(request):
             "location": lead.location,
             "status": lead.status,
             "has_email": has_direct_email,
-            "mailto_url": build_mailto_link(lead.contact_email, lead.company_name, lead.role) if has_direct_email else ""
+            "mailto_url": build_gmail_web_link(lead.contact_email, lead.company_name, lead.role) if has_direct_email else ""
         })
 
     total_leads = JobLead.objects.count()

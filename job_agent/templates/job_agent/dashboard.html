@@ -111,8 +111,8 @@
                         </td>
                         <td class="text-end">
                             {% if lead.has_email %}
-                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-apply btn-sm {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
-                                <i class="fa-solid fa-paper-plane me-1"></i> {% if lead.status == 'EMAILED' %}Emailed{% else %}Send Mail{% endif %}
+                            <a href="{{ lead.mailto_url }}" target="_blank" class="btn btn-danger btn-sm fw-semibold {% if lead.status == 'EMAILED' %}btn-applied{% endif %}" onclick="markApplied('{{ lead.id }}')">
+                                <i class="fa-brands fa-google me-1"></i> Send via Gmail
                             </a>
                             {% elif lead.apply_url %}
                             <a href="{{ lead.apply_url }}" target="_blank" class="btn btn-outline-info btn-sm" onclick="markApplied('{{ lead.id }}')">
